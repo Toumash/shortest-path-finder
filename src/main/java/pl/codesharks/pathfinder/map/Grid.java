@@ -1,6 +1,6 @@
 package pl.codesharks.pathfinder.map;
 
-import pl.codesharks.pathfinder.node.Node;
+import pl.codesharks.pathfinder.node.Basic2DNode;
 import pl.codesharks.pathfinder.util.Logger;
 
 import java.util.ArrayList;
@@ -8,8 +8,11 @@ import java.util.ArrayList;
 /**
  * 2D grid of {@link pl.codesharks.pathfinder.node.BasicNode}
  */
-public class Grid<E extends Node<E>> implements Map<E> {
+public class Grid<E extends Basic2DNode> implements Map<Basic2DNode> {
 
+    private final int mapWidth;
+    private final int mapHeight;
+    private final E factory;
     /**
      * Stores nodes as <br>
      * <code>
@@ -17,16 +20,11 @@ public class Grid<E extends Node<E>> implements Map<E> {
      * y1 x1 x2 x3
      * </code>
      */
-    protected ArrayList<ArrayList<E>> map;
-    protected int startLocationX = 0;
-    protected int startLocationY = 0;
-    protected int goalLocationX = 0;
-    protected int goalLocationY = 0;
-    private int mapWidth;
-    private int mapHeight;
-
-    private Logger log = new Logger();
-    private E factory;
+    protected ArrayList<ArrayList<Basic2DNode>> map;
+    private int startLocationX = 0;
+    private int startLocationY = 0;
+    private int goalLocationX = 0;
+    private int goalLocationY = 0;
 
     public Grid(int width, int height, E factory) {
         this.mapWidth = width;
@@ -35,15 +33,16 @@ public class Grid<E extends Node<E>> implements Map<E> {
         this.factory = factory;
 
         init();
+        Logger log = new Logger();
         log.addLine("\tMap Created");
         log.addLine("\tMap Node edges registered");
     }
 
     private void init() {
-        E node;
+        Basic2DNode node;
         map = new ArrayList<>();
         for (int y = 0; y < mapHeight; y++) {
-            map.add(new ArrayList<E>());
+            map.add(new ArrayList<Basic2DNode>());
             for (int x = 0; x < mapWidth; x++) {
                 node = factory.valueOf(x, y);
                 map.get(y).add(node);
@@ -81,7 +80,7 @@ public class Grid<E extends Node<E>> implements Map<E> {
     }
 
     @Override
-    public E getNode(int x, int y) {
+    public Basic2DNode getNode(int x, int y) {
         return map.get(y).get(x);
     }
 
@@ -117,7 +116,7 @@ public class Grid<E extends Node<E>> implements Map<E> {
     }
 
     @Override
-    public E getStartNode() {
+    public Basic2DNode getStartNode() {
         return map.get(startLocationY).get(startLocationX);
     }
 
@@ -132,24 +131,24 @@ public class Grid<E extends Node<E>> implements Map<E> {
     }
 
     @Override
-    public E getGoalLocation() {
+    public Basic2DNode getGoalNode() {
         return map.get(goalLocationY).get(goalLocationX);
     }
 
     @Override
-    public float getDistanceBetween(E node1, E node2) {
-        float diffY = Math.abs(node1.getY() - node2.getY());
-        float diffX = Math.abs(node1.getX() - node2.getX());
-        return (float) Math.sqrt(((diffX * diffX) + (diffY * diffY)));
+    public float getDistanceBetween(Basic2DNode node1, Basic2DNode node2) {
+        float diffX = node1.getX() - node2.getX();
+        float diffY = node1.getY() - node2.getY();
+        return (float) Math.sqrt(diffX * diffX + diffY * diffY);
     }
 
     @Override
-    public int getMapWidth() {
+    public int getWidth() {
         return mapWidth;
     }
 
     @Override
-    public int getMapHeight() {
+    public int getHeight() {
         return mapHeight;
     }
 
@@ -160,6 +159,11 @@ public class Grid<E extends Node<E>> implements Map<E> {
         goalLocationX = 0;
         goalLocationY = 0;
         init();
+    }
+
+    @Override
+    public ArrayList<ArrayList<Basic2DNode>> getAllNodes() {
+        return map;
     }
 
 }

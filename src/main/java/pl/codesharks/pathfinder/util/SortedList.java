@@ -4,10 +4,9 @@ import org.apache.commons.collections4.list.TreeList;
 
 import java.util.Collections;
 
-public class SortedList<E extends Comparable<E>> {
+public class SortedList<E extends Comparable> {
 
-
-    private TreeList<E> list = new TreeList<>();
+    private final TreeList<E> list = new TreeList<>();
 
     public E getFirst() {
         return list.get(0);

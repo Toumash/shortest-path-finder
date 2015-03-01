@@ -1,9 +1,10 @@
 package pl.codesharks.pathfinder.algorithm;
 
 import pl.codesharks.pathfinder.heuristic.AStarHeuristic;
+import pl.codesharks.pathfinder.heuristic.ManhattanHeuristic;
 import pl.codesharks.pathfinder.map.Map;
 import pl.codesharks.pathfinder.map.Path;
-import pl.codesharks.pathfinder.node.BasicNode;
+import pl.codesharks.pathfinder.node.Node;
 import pl.codesharks.pathfinder.util.Logger;
 import pl.codesharks.pathfinder.util.SortedList;
 
@@ -13,24 +14,37 @@ import java.util.ArrayList;
  * A star (A*) path finding algorithm. Always uses best option available at the moment,depending on the distance from
  * START + distance to GOAL computed by heuristic algorithm
  */
-public class AStarAlgorithm implements ShortestPathAlgorithm<BasicNode> {
+public class AStarAlgorithm<T extends Node<T>> implements ShortestPathAlgorithm<T> {
 
-    private Logger log = new Logger();
+    public static final String NAME = "A Star";
+    public static final String DESCRIPTION = "Faster than dijkstra - uses heuristic to guess in which directon to go";
+    private Logger log = null;
     private AStarHeuristic heuristic;
     /**
      * closedList The list of Nodes not searched yet, sorted by their distance to the goal as guessed by our heuristic.
      */
-    private ArrayList<BasicNode> closedList;
-    private SortedList<BasicNode> openList;
-    private Path<BasicNode> shortestPath;
-    private Map<BasicNode> map;
+    private ArrayList<T> closedList;
+    private SortedList<T> openList;
+    private Path<T> shortestPath;
+    private Map<T> map;
 
     /**
      * @param heuristic algorithm used to calculate distance to the goal
      */
     public AStarAlgorithm(AStarHeuristic heuristic) {
         this.heuristic = heuristic;
+        init();
+    }
 
+    public AStarAlgorithm() {
+        this.heuristic = new ManhattanHeuristic();
+        init();
+    }
+
+    private void init() {
+        if (log == null) {
+            log = new Logger();
+        }
         closedList = new ArrayList<>();
         openList = new SortedList<>();
     }
@@ -48,8 +62,8 @@ public class AStarAlgorithm implements ShortestPathAlgorithm<BasicNode> {
      * @return path of nodes to traverse
      */
     @Override
-    public Path<BasicNode> calculateShortestPath(Map<BasicNode> map) {
-        return calculateShortestPath(map, 0);
+    public Path<T> findPath(Map<T> map) {
+        return findPath(map, 0);
     }
 
     /**
@@ -58,7 +72,7 @@ public class AStarAlgorithm implements ShortestPathAlgorithm<BasicNode> {
      * @return path of nodes to traverse
      */
     @Override
-    public Path<BasicNode> calculateShortestPath(Map<BasicNode> map, int delayMs) {
+    public Path<T> findPath(Map<T> map, int delayMs) {
         if (delayMs < 0) {
             throw new IllegalArgumentException("delay cannot be less than 0! delay:" + delayMs);
         }
@@ -78,18 +92,18 @@ public class AStarAlgorithm implements ShortestPathAlgorithm<BasicNode> {
         }
 
         // set up first node, and clear lists
-        map.getStartNode().setDistanceFromStart(0);
-        BasicNode s = map.getStartNode();
-        s.setHeuristicDistanceFromGoal(heuristic.getEstimatedDistanceToGoal(map, s.getX(), s.getY(), map.getGoalLocationX(), map.getGoalLocationY()));
+        map.getStartNode().setCost(0);
+        T s = map.getStartNode();
+        s.setHeuristicDistanceToGoal(heuristic.getEstimatedDistanceToGoal(map, s.getX(), s.getY(), map.getGoalLocationX(), map.getGoalLocationY()));
         closedList.clear();
         openList.clear();
         openList.add(map.getStartNode());
 
         while (openList.size() != 0) {
             //sorted by lowest distance from our goal as guessed by our heuristic
-            BasicNode current = openList.getFirst();
+            T current = openList.getFirst();
 
-            if (current == map.getGoalLocation()) {
+            if (current == map.getGoalNode()) {
                 log.addLine("Calculating done!");
                 return reconstructPath(current);
             }
@@ -104,7 +118,7 @@ public class AStarAlgorithm implements ShortestPathAlgorithm<BasicNode> {
                 throw new IllegalArgumentException("Node x:" + current.getX() + " y:" + current.getY() + " Has no neighbors");
             }
 
-            for (BasicNode neighbor : current.getNeighborList()) {
+            for (T neighbor : current.getNeighborList()) {
                 // don't check the same node twice
                 if (closedList.contains(neighbor)) {
                     continue;
@@ -114,14 +128,14 @@ public class AStarAlgorithm implements ShortestPathAlgorithm<BasicNode> {
 
                 // algorithm cant walk through walls
                 if (!neighbor.isObstacle()) {
-                    float neighborDistanceFromStart = (current.getDistanceFromStart() + map.getDistanceBetween(current, neighbor));
+                    float neighborTotalCost = (current.getCost() + map.getDistanceBetween(current, neighbor));
                     boolean inQueue = openList.contains(neighbor);
 
-                    if (!inQueue || neighborDistanceFromStart < neighbor.getDistanceFromStart()) {
+                    if (!inQueue || neighborTotalCost < neighbor.getCost()) {
                         neighbor.setParent(current);
-                        neighbor.setDistanceFromStart(neighborDistanceFromStart);
+                        neighbor.setCost(neighborTotalCost);
 
-                        neighbor.setHeuristicDistanceFromGoal(
+                        neighbor.setHeuristicDistanceToGoal(
                                 heuristic.getEstimatedDistanceToGoal(map,
                                         neighbor.getX(), neighbor.getY(),
                                         map.getGoalLocationX(), map.getGoalLocationY()));
@@ -130,7 +144,7 @@ public class AStarAlgorithm implements ShortestPathAlgorithm<BasicNode> {
                             openList.add(neighbor);
 
                             // slow down a little bit to show actual progress, if we are using graphics preview
-                            if (delayMs != 0) {
+                            if (delayMs > 0) {
                                 try {
                                     Thread.sleep(delayMs);
                                 } catch (InterruptedException e) {
@@ -148,17 +162,17 @@ public class AStarAlgorithm implements ShortestPathAlgorithm<BasicNode> {
 
     @Override
     public void printPath() {
-        BasicNode node;
-        for (int x = 0; x < map.getMapWidth(); x++) {
+        T node;
+        for (int x = 0; x < map.getWidth(); x++) {
 
             if (x == 0) {
-                for (int i = 0; i <= map.getMapWidth(); i++)
+                for (int i = 0; i <= map.getWidth(); i++)
                     log.add("-");
                 log.addLine("");
             }
             log.add("|");
 
-            for (int y = 0; y < map.getMapHeight(); y++) {
+            for (int y = 0; y < map.getHeight(); y++) {
                 node = map.getNode(x, y);
                 if (node.isObstacle()) {
                     log.add("X");
@@ -173,21 +187,31 @@ public class AStarAlgorithm implements ShortestPathAlgorithm<BasicNode> {
                 } else {
                     log.add(" ");
                 }
-                if (y == map.getMapHeight())
+                if (y == map.getHeight())
                     log.add("_");
             }
 
             log.add("|");
             log.addLine();
         }
-        for (int i = 0; i <= map.getMapWidth(); i++)
+        for (int i = 0; i <= map.getWidth(); i++)
             log.add("-");
         log.addLine();
     }
 
+    @Override
+    public String getName() {
+        return NAME;
+    }
 
-    private Path<BasicNode> reconstructPath(BasicNode node) {
-        Path<BasicNode> path = new Path<>();
+    @Override
+    public String getDescription() {
+        return DESCRIPTION;
+    }
+
+
+    private Path<T> reconstructPath(T node) {
+        Path<T> path = new Path<>();
 
         while (node.getParent() != null) {
             path.prependWayPoint(node);

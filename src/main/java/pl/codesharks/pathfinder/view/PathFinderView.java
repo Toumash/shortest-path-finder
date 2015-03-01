@@ -2,8 +2,7 @@ package pl.codesharks.pathfinder.view;
 
 import pl.codesharks.pathfinder.algorithm.ShortestPathAlgorithm;
 import pl.codesharks.pathfinder.map.Grid;
-import pl.codesharks.pathfinder.map.Map;
-import pl.codesharks.pathfinder.node.Node;
+import pl.codesharks.pathfinder.node.Basic2DNode;
 import pl.codesharks.pathfinder.util.StopWatch;
 
 import javax.swing.*;
@@ -13,6 +12,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.image.BufferStrategy;
+import java.util.ArrayList;
 
 /**
  * Simple view (Canvas) used to visualise path finding algorithms.<br>
@@ -20,37 +20,40 @@ import java.awt.image.BufferStrategy;
  * and what type of map to use
  */
 @SuppressWarnings("FieldCanBeLocal")
-class PathFinderView<T extends Node<T>> extends Canvas implements Runnable, MouseListener {
+class PathFinderView extends Canvas implements Runnable, MouseListener {
+    private final JFrame jFrame;
     private int height = 520;
     private int width = 520;
     private float nodeHeight = 50;
     private float nodeWidth = 50;
-    private Map<T> map;
-    private T start;
-    private T goal;
+    private volatile Grid<Basic2DNode> map;
+    private Basic2DNode start;
+    private Basic2DNode goal;
     private boolean lockMouseClicks;
-    private JFrame jFrame;
-    private ShortestPathAlgorithm<T> shortestPathAlgorithm;
-    private Thread thread;
+    private ShortestPathAlgorithm<Basic2DNode> shortestPathAlgorithm;
+    private ArrayList<ShortestPathAlgorithm<Basic2DNode>> algorithms;
+    private Thread displayThread;
+    private Thread algorithmThread;
+    private ArrayList<JMenuItem> algorihmButtons = new ArrayList<>();
 
-
-    public PathFinderView(JFrame frame, int width, int height, Map<T> map, ShortestPathAlgorithm<T> algorithm) {
+    public PathFinderView(JFrame frame, int width, int height, Grid<Basic2DNode> map, ArrayList<ShortestPathAlgorithm<Basic2DNode>> algorithms) {
         this.jFrame = frame;
         this.map = map;
-        this.shortestPathAlgorithm = algorithm;
+        this.shortestPathAlgorithm = algorithms.get(0);
+        this.algorithms = algorithms;
 
         this.width = width;
         this.height = height;
-        this.nodeHeight = (float) height / map.getMapHeight();
-        this.nodeWidth = (float) width / map.getMapWidth();
+        this.nodeHeight = (float) height / map.getHeight();
+        this.nodeWidth = (float) width / map.getWidth();
         init();
     }
 
     private void reset() {
-        map = new Grid<>(map.getMapWidth(), map.getMapHeight(), this.map.getFactoryObject());
+        map = new Grid<>(map.getWidth(), map.getHeight(), this.map.getFactoryObject());
     }
 
-    private void renderNode(Graphics2D g, T node) {
+    private void renderNode(Graphics2D g, Basic2DNode node) {
         g.setColor(Color.BLACK);
         g.fillRect((int) (node.getX() * nodeWidth), (int) (node.getY() * nodeHeight), (int) nodeWidth, (int) nodeHeight);
 
@@ -64,16 +67,39 @@ class PathFinderView<T extends Node<T>> extends Canvas implements Runnable, Mous
         g.fillRect((int) (node.getX() * nodeWidth + 1), (int) (node.getY() * nodeHeight + 1), (int) (nodeWidth - 1), (int) (nodeHeight - 1));
     }
 
-    protected void calculatePath() {
-        StopWatch sw = new StopWatch();
+    void calculatePath() {
+        if (goal == null || start == null) {
+            return;
+        }
+        switchCalculateButtonsState(false);
+        lockMouseClicks = true;
+        final StopWatch sw = new StopWatch();
         sw.start();
-        shortestPathAlgorithm.calculateShortestPath(map, 125);
-        sw.stop();
-        showDialog("Calculation time:" + sw.getElapsedTimeMilliseconds() / 1000f + "s", "Computation ended", JOptionPane.INFORMATION_MESSAGE);
+
+        algorithmThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                shortestPathAlgorithm.findPath(map, 100);
+                sw.stop();
+                showDialog("Calculation time:" + sw.getElapsedTimeMilliseconds() / 1000f + "s", "Computation ended", JOptionPane.INFORMATION_MESSAGE);
+            }
+        });
+        algorithmThread.start();
+
     }
 
-    public void showDialog(String message, String caption, int messageType) {
+    void showDialog(String message, String caption, int messageType) {
         JOptionPane.showMessageDialog(jFrame, message, caption, messageType);
+    }
+
+    /**
+     * Changes buttons states. If the calculation is made, the buttons are disabled.
+     * They are enabled once user clicks "new Grid"
+     */
+    private void switchCalculateButtonsState(final boolean value) {
+        for (JMenuItem item : algorihmButtons) {
+            item.setEnabled(value);
+        }
     }
 
     @Override
@@ -128,22 +154,29 @@ class PathFinderView<T extends Node<T>> extends Canvas implements Runnable, Mous
             public void actionPerformed(ActionEvent e) {
                 reset();
                 lockMouseClicks = false;
+                switchCalculateButtonsState(true);
             }
         });
         options.add(newGrid);
 
-        JMenuItem calcPath = new JMenuItem("Calculate path");
-        calcPath.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (goal == null || start == null) {
-                    return;
+
+        for (final ShortestPathAlgorithm<Basic2DNode> spa : algorithms) {
+            String name = spa.getName();
+            String description = spa.getDescription();
+            JMenuItem calcPath = new JMenuItem("use: " + name);
+
+            calcPath.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    shortestPathAlgorithm = spa;
+                    calculatePath();
                 }
-                lockMouseClicks = true;
-                calculatePath();
-            }
-        });
-        options.add(calcPath);
+            });
+            calcPath.setToolTipText(description);
+            algorihmButtons.add(calcPath);
+            options.add(calcPath);
+        }
+
 
         JMenu exit = new JMenu("exit");
         exit.addActionListener(new ActionListener() {
@@ -158,12 +191,12 @@ class PathFinderView<T extends Node<T>> extends Canvas implements Runnable, Mous
         frame.setJMenuBar(bar);
     }
 
-    protected void render(Graphics2D g) {
+    void render(Graphics2D g) {
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, this.width, this.height);
 
-        for (int y = 0; y < map.getMapHeight(); y++) {
-            for (int x = 0; x < map.getMapWidth(); x++) {
+        for (int y = 0; y < map.getHeight(); y++) {
+            for (int x = 0; x < map.getWidth(); x++) {
                 renderNode(g, map.getNode(x, y));
             }
         }
@@ -173,7 +206,7 @@ class PathFinderView<T extends Node<T>> extends Canvas implements Runnable, Mous
     public void mousePressed(MouseEvent e) {
         if (lockMouseClicks) return;
         int c = e.getButton();
-        T n = getNodeAt(e.getX(), e.getY());
+        Basic2DNode n = getNodeAt(e.getX(), e.getY());
         if (n != null) {
             if (n.isGoal() || n.isStart() || n.isObstacle()) {
                 n.clear();
@@ -208,11 +241,11 @@ class PathFinderView<T extends Node<T>> extends Canvas implements Runnable, Mous
     public void mouseClicked(MouseEvent e) {
     }
 
-    public T getNodeAt(int x, int y) {
+    Basic2DNode getNodeAt(int x, int y) {
         System.out.println("x" + x + " y" + y);
         x /= nodeWidth;
         y /= nodeHeight;
-        if (x >= 0 && y >= 0 && x < map.getMapWidth() && y < map.getMapHeight()) {
+        if (x >= 0 && y >= 0 && x < map.getWidth() && y < map.getHeight()) {
             return map.getNode(x, y);
         }
         return null;
@@ -228,7 +261,7 @@ class PathFinderView<T extends Node<T>> extends Canvas implements Runnable, Mous
     }
 
     public void start() {
-        thread = new Thread(this);
-        thread.start();
+        displayThread = new Thread(this);
+        displayThread.start();
     }
 }

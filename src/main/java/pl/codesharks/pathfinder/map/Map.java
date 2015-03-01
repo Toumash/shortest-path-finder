@@ -2,35 +2,39 @@ package pl.codesharks.pathfinder.map;
 
 import pl.codesharks.pathfinder.node.Node;
 
+import java.util.ArrayList;
+
 public interface Map<E extends Node<E>> {
 
-    public void setObstacle(int x, int y, boolean isObstacle);
+    void setObstacle(int x, int y, boolean isObstacle);
 
-    public E getNode(int x, int y);
+    E getNode(int x, int y);
 
-    public E getFactoryObject();
+    E getFactoryObject();
 
-    public void setStartLocation(int x, int y);
+    void setStartLocation(int x, int y);
 
-    public void setGoalLocation(int x, int y);
+    void setGoalLocation(int x, int y);
 
-    public int getStartLocationX();
+    int getStartLocationX();
 
-    public int getStartLocationY();
+    int getStartLocationY();
 
-    public E getStartNode();
+    E getStartNode();
 
-    public int getGoalLocationX();
+    int getGoalLocationX();
 
-    public int getGoalLocationY();
+    int getGoalLocationY();
 
-    public E getGoalLocation();
+    E getGoalNode();
 
-    public float getDistanceBetween(E node1, E node2);
+    float getDistanceBetween(E node1, E node2);
 
-    public int getMapWidth();
+    int getWidth();
 
-    public int getMapHeight();
+    int getHeight();
 
-    public void clear();
+    void clear();
+
+    ArrayList<ArrayList<E>> getAllNodes();
 }

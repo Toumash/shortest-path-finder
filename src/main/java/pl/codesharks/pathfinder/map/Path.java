@@ -13,7 +13,7 @@ import java.util.Iterator;
 public class Path<E extends Node<E>> implements Iterable<E> {
 
 
-    private ArrayList<E> waypoints = new ArrayList<>();
+    private final ArrayList<E> waypoints = new ArrayList<>();
 
     public Path() {
     }
@@ -24,26 +24,6 @@ public class Path<E extends Node<E>> implements Iterable<E> {
 
     public E getWayPoint(int index) {
         return waypoints.get(index);
-    }
-
-    /**
-     * Get the x-coordinate for the waypoint at the given index.
-     *
-     * @param index The index of the waypoint to get the x-coordinate of.
-     * @return The x coordinate at the waypoint.
-     */
-    public int getX(int index) {
-        return getWayPoint(index).getX();
-    }
-
-    /**
-     * Get the y-coordinate for the waypoint at the given index.
-     *
-     * @param index The index of the waypoint to get the y-coordinate of.
-     * @return The y coordinate at the waypoint.
-     */
-    public int getY(int index) {
-        return getWayPoint(index).getY();
     }
 
     /**

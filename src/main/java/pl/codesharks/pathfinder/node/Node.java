@@ -3,86 +3,176 @@ package pl.codesharks.pathfinder.node;
 import java.util.ArrayList;
 
 @SuppressWarnings("UnusedDeclaration")
-public abstract class Node<T extends Node<T>> implements Comparable<T> {
+public abstract class Node<T extends Node> implements Comparable<T> {
 
-    public abstract boolean isOnPath();
+    public static final float UNVISITED = Integer.MAX_VALUE-5;
+    protected ArrayList<T> neighborList;
 
-    public abstract void setOnPath(boolean isOnPath);
+    protected boolean visited;
+    protected float distance;
+    protected float heuristicDistanceToGoal;
+    protected T parent;
+    protected int x;
+    protected int y;
+    protected boolean isObstacle;
+    protected boolean isStart;
+    protected boolean isGoal;
+    protected boolean isOnPath;
+    protected float cost;
 
-    public abstract void clear();
+    public Node() {
+        neighborList = new ArrayList<>();
+        this.x = 0;
+        this.y = 0;
+        this.visited = false;
+        this.distance = Integer.MAX_VALUE;
+        this.isObstacle = false;
+        this.isStart = false;
+        this.isGoal = false;
+    }
 
-    public abstract T getNorth();
+    protected Node(int x, int y) {
+        neighborList = new ArrayList<>();
+        this.x = x;
+        this.y = y;
+        this.visited = false;
+        this.distance = Integer.MAX_VALUE;
+        this.isObstacle = false;
+        this.isStart = false;
+        this.isGoal = false;
+    }
 
-    public abstract void setNorth(T north);
+    protected Node(int x, int y, boolean visited, int distance, boolean isObstacle, boolean isStart, boolean isGoal) {
+        neighborList = new ArrayList<>();
+        this.x = x;
+        this.y = y;
+        this.visited = visited;
+        this.distance = distance;
+        this.isObstacle = isObstacle;
+        this.isStart = isStart;
+        this.isGoal = isGoal;
+    }
 
-    public abstract T getNorthEast();
 
-    public abstract void setNorthEast(T northEast);
+    public float getHeuristicDistanceToGoal() {
+        return heuristicDistanceToGoal;
+    }
 
-    public abstract T getEast();
+    public void setHeuristicDistanceToGoal(float heuristicDistanceToGoal) {
+        this.heuristicDistanceToGoal = heuristicDistanceToGoal;
+    }
 
-    public abstract void setEast(T east);
+    /**
+     * Total cost (from start) to get to this node
+     */
+    public float getCost() {
+        return this.cost;
+    }
 
-    public abstract T getSouthEast();
+    /**
+     * Total cost (from start) to get to this node
+     */
+    public void setCost(float newCost) {
+        this.cost = newCost;
+    }
 
-    public abstract void setSouthEast(T southEast);
+    public boolean isOnPath() {
+        return this.isOnPath;
+    }
 
-    public abstract T getSouth();
+    public void setOnPath(boolean isOnPath) {
+        this.isOnPath = isOnPath;
+    }
 
-    public abstract void setSouth(T south);
+    public void clear() {
+        isStart = false;
+        isGoal = false;
+        isObstacle = false;
+    }
 
-    public abstract T getSouthWest();
+    public ArrayList<T> getNeighborList() {
+        return this.neighborList;
+    }
 
-    public abstract void setSouthWest(T southWest);
+    public boolean isVisited() {
+        return this.visited;
+    }
 
-    public abstract T getWest();
+    public void setVisited(boolean visited) {
+        this.visited = visited;
+    }
 
-    public abstract void setWest(T west);
+    public float getDistance() {
+        return this.distance;
+    }
 
-    public abstract T getNorthWest();
+    public void setDistance(float value) {
+        this.distance = value;
+    }
 
-    public abstract void setNorthWest(T northWest);
+    public T getParent() {
+        return this.parent;
+    }
 
-    public abstract ArrayList<T> getNeighborList();
+    public void setParent(T parent) {
+        this.parent = parent;
+    }
 
-    public abstract boolean isVisited();
+    public int getX() {
+        return this.x;
+    }
 
-    public abstract void setVisited(boolean visited);
+    public void setX(int x) {
+        this.x = x;
+    }
 
-    public abstract float getDistanceFromStart();
+    public int getY() {
+        return this.y;
+    }
 
-    public abstract void setDistanceFromStart(float f);
+    public void setY(int y) {
+        this.y = y;
+    }
 
-    public abstract T getParent();
+    public boolean isObstacle() {
+        return this.isObstacle;
+    }
 
-    public abstract void setParent(T previousNode);
+    public void setObstacle(boolean isObstacle) {
+        this.isObstacle = isObstacle;
+    }
 
-    public abstract float getHeuristicDistanceFromGoal();
+    public boolean isStart() {
+        return this.isStart;
+    }
 
-    public abstract void setHeuristicDistanceFromGoal(float heuristicDistanceFromGoal);
+    public void setStart(boolean isStart) {
+        this.isStart = isStart;
+    }
 
-    public abstract int getX();
+    public boolean isGoal() {
+        return this.isGoal;
+    }
 
-    public abstract void setX(int x);
-
-    public abstract int getY();
-
-    public abstract void setY(int y);
-
-    public abstract boolean isObstacle();
-
-    public abstract void setObstacle(boolean isObstacle);
-
-    public abstract boolean isStart();
-
-    public abstract void setStart(boolean isStart);
-
-    public abstract boolean isGoal();
-
-    public abstract void setGoal(boolean isGoal);
+    public void setGoal(boolean isGoal) {
+        this.isGoal = isGoal;
+    }
 
     public abstract T valueOf(int x, int y);
 
     public abstract T valueOf(int x, int y, boolean visited, int distanceFromStart, boolean isObstacle, boolean isStart, boolean isGoal);
 
+    @SuppressWarnings("NullableProblems")
+    @Override
+    public int compareTo(T otherNode) {
+            float thisTotalDistanceFromGoal = heuristicDistanceToGoal + distance;
+            float otherTotalDistanceFromGoal = otherNode.getHeuristicDistanceToGoal() + otherNode.getDistance();
+            if (thisTotalDistanceFromGoal < otherTotalDistanceFromGoal) {
+                return -1;
+            } else if (thisTotalDistanceFromGoal > otherTotalDistanceFromGoal) {
+                return 1;
+            } else {
+                return 0;
+            }
+        }
 }

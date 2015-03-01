@@ -6,7 +6,7 @@ import pl.codesharks.pathfinder.heuristic.AStarHeuristic;
 import pl.codesharks.pathfinder.heuristic.ManhattanHeuristic;
 import pl.codesharks.pathfinder.map.Grid;
 import pl.codesharks.pathfinder.map.Path;
-import pl.codesharks.pathfinder.node.BasicNode;
+import pl.codesharks.pathfinder.node.Basic2DNode;
 import pl.codesharks.pathfinder.util.Logger;
 import pl.codesharks.pathfinder.util.StopWatch;
 
@@ -25,7 +25,7 @@ public class TestAStar {
 
         log.addLine("=======================");
         log.addLine("Map initializing...");
-        Grid<BasicNode> map = new Grid<>(mapWith, mapHeight,new BasicNode());
+        Grid<Basic2DNode> map = new Grid<>(mapWith, mapHeight,new Basic2DNode());
 
         map.setStartLocation(0, 0);
         map.setGoalLocation(9, 9);
@@ -39,10 +39,10 @@ public class TestAStar {
         AStarHeuristic heuristic = new ManhattanHeuristic();
 
         log.addLine("Pathfinder initializing...");
-        AStarAlgorithm pathFinder = new AStarAlgorithm(heuristic);
+        AStarAlgorithm<Basic2DNode> pathFinder = new AStarAlgorithm<>(heuristic);
 
         log.addLine("Calculating shortest path...");
-        Path p = pathFinder.calculateShortestPath(map);
+        Path<Basic2DNode> p = pathFinder.findPath(map);
 
         if(p==null){
             throw new Exception("Path not found exception");

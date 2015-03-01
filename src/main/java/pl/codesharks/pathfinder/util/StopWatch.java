@@ -2,8 +2,8 @@ package pl.codesharks.pathfinder.util;
 
 public class StopWatch {
 
-    public static final int NANO = 1000000000;
-    public static final int MILLISECONDS = 1000000;
+    private static final int NANO = 1000000000;
+    private static final int MILLISECONDS = 1000000;
     private long startTime = 0;
     private long stopTime = 0;
     private boolean running = false;

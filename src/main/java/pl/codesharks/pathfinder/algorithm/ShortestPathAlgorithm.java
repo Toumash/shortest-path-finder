@@ -6,10 +6,14 @@ import pl.codesharks.pathfinder.node.Node;
 
 public interface ShortestPathAlgorithm<E extends Node<E>> {
 
-    public Path<E> calculateShortestPath(Map<E> map);
+    Path<E> findPath(Map<E> map);
 
+    Path<E> findPath(Map<E> map, int delayMs);
 
-    public Path<E> calculateShortestPath(Map<E> map, int delayMs);
+    void printPath();
 
-    public void printPath();
+    String getName();
+
+    String getDescription();
+
 }
